@@ -27,6 +27,7 @@ elseif(empty($_GET)){
     $response->setSuccess(false);
     $response->addMessage("Request method not allowed");
     $response->send();
+    exit;
   }
 
   sleep(1);
@@ -77,7 +78,7 @@ elseif(empty($_GET)){
     $username = trim($jsonData->username);
     $password = $jsonData->password;
 
-    $query = $writeDB->prepare("select id, fullname, username, password, useractive, loginattempts from tlbusers where username = :8sername");
+    $query = $writeDB->prepare("select id, fullname, username, password, useractive, loginattempts from tlbusers where username = :username");
     $query->bindParam(':username',$username,PDO::PARAM_STR);
     $query->execute();
 
@@ -140,7 +141,7 @@ elseif(empty($_GET)){
     $access_token_expiry_seconds = 1200;
     $refresh_token_expiry_seconds =1209600;
   }
-  catch(PDOException $eX) {
+  catch(PDOException $ex) {
     $response = new Response();
     $response->setHttpStatusCode(500);
     $response->setSuccess(false);
@@ -157,8 +158,9 @@ elseif(empty($_GET)){
     $query->bindParam(':id',$returned_id, PDO::PARAM_INT);
     $query->execute();
 
-    $query = $writeDB->prepare('insert in tblsessions (userid, accesstoken, accesstokenexpiry, refreshtoken, refreshtokenexipry) values (:userid, :accesstoken, date_add(NOW(), INTERVAL :accesstokenexpiryseconds SECOND), :refreshtoken, date_add(NOW(), INTERVAL :refreshtokenexpiryseconds SECOND))');
-    $query->bindParam(':userid',$returned_userid, PDO::PARAM_INT);$query->bindParam(':id',$returned_id, PDO::PARAM_INT);
+
+    $query = $writeDB->prepare('insert into tblsessions_1 (userid, accesstoken, accesstokenexpiry, refreshtoken, refreshtokenexpiry) values (:userid, :accesstoken, date_add(NOW(), INTERVAL :accesstokenexpiryseconds SECOND), :refreshtoken, date_add(NOW(), INTERVAL :refreshtokenexpiryseconds SECOND))');
+    $query->bindParam(':userid',$returned_id, PDO::PARAM_INT);
     $query->bindParam(':accesstoken',$accesstoken, PDO::PARAM_STR);
     $query->bindParam(':accesstokenexpiryseconds',$access_token_expiry_seconds, PDO::PARAM_INT);
     $query->bindParam(':refreshtoken',$refreshtoken, PDO::PARAM_STR);
@@ -170,7 +172,7 @@ elseif(empty($_GET)){
     $writeDB->commit();
 
     $returnData = array();
-    $returnData['session_id'] = $lasrSessionID;
+    $returnData['session_id'] = $lastSessionID;
     $returnData['access_token'] = $accesstoken;
     $returnData['access_token_expires_in'] = $access_token_expiry_seconds;
     $returnData['refresh_token'] = $refreshtoken;
@@ -188,12 +190,13 @@ elseif(empty($_GET)){
 
 
   }
-  catch(PDOException $eX) {
+  catch(PDOException $ex) {
     $writeDB->rollback();
     $response = new Response();
     $response->setHttpStatusCode(500);
     $response->setSuccess(false);
     $response->addMessage('There was an issue logging in - Please try again');
+    $response->addMessage($ex->getMessage());
     $response->send();
     exit;
   }
