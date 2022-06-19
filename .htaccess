@@ -11,7 +11,10 @@ RewriteRule ^tasks/$ controller/task.php [L]
 RewriteRule ^tasks$ controller/task.php [L]
 RewriteRule ^tasks/page/([0-9]+)$ controller/task.php?page=$1 [L]
 RewriteRule ^tasks/page/$ controller/task.php?page=$1 [L]
+
 RewriteRule ^users$ controller/users.php [L]
+
+RewriteRule ^sessions$ controller/sessions.php [L]
 
 
 
