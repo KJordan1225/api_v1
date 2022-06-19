@@ -85,6 +85,8 @@ if(array_key_exists('sessionid', $_GET)){
   }
   elseif($_SERVER['REQUEST_METHOD'] === 'PATCH'){
 
+    
+
   }
   else{
     $response = new Response();
