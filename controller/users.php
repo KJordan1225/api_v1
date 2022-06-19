@@ -57,7 +57,7 @@ if(!isset($jsonData->fullname) || !isset($jsonData->username) || !isset($jsonDat
   exit;
 }
 
-if(strlen($jsonData->fullname) < 1 || strlen($jsonData->fullname) > 255  strlen($jsonData->username) < 1 || strlen($jsonData->username) > 255 || strlen($jsonData->password) < 1 || strlen($jsonData->password) > 255){
+if(strlen($jsonData->fullname) < 1 || strlen($jsonData->fullname) > 255 || strlen($jsonData->username) < 1 || strlen($jsonData->username) > 255 || strlen($jsonData->password) < 1 || strlen($jsonData->password) > 255){
   $response = new Response();
   $response->setHttpStatusCode(400);
   $response->setSuccess(false);
@@ -77,9 +77,11 @@ $password = $jsonData->password;
 
 try{
 
-  $query = $writeDB->prepare("select id from tbluser where username = :username");
+  $query = $writeDB->prepare("select id from tlbusers where username = :username");
   $query->bindParam(':username', $username, PDO::PARAM_STR);
   $query->execute();
+
+  // print_r("after select stmt executed");
 
   $rowCount = $query->rowCount();
 
@@ -94,7 +96,7 @@ try{
 
     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
-    $query = $writeDB->prepare("insert into tblusers (fullname, username, password) values (:fullname, :username, :password)");
+    $query = $writeDB->prepare("insert into tlbusers (fullname, username, password) values (:fullname, :username, :password)");
     $query->bindParam(':fullname',$fullname, PDO::PARAM_STR);
     $query->bindParam(':username',$username, PDO::PARAM_STR);
     $query->bindParam(':password',$hashed_password, PDO::PARAM_STR);
