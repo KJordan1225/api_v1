@@ -94,9 +94,9 @@ if(array_key_exists('sessionid', $_GET)){
       exit();
     }
 
-    $rawPatchData = json_decode('php://input');
+    $rawPatchData = file_get_contents('php://input');
 
-    if(!jsonData = json_decode($rawPatchData)){
+    if(!$jsonData = json_decode($rawPatchData)){
       $response = new Response();
       $response->setHttpStatusCode(400);
       $response->setSuccess(false);
@@ -147,13 +147,82 @@ if(array_key_exists('sessionid', $_GET)){
       $returned_accesstokenexpiry = $row['accesstokenexpiry'];
       $returned_refreshtokenexpiry = $row['refreshtokenexpiry'];
 
+      if($returned_useractive !== "Y"){
+        $response = new Response();
+        $response->setHttpStatusCode(401);
+        $response->setSuccess(false);
+        $response->addMessage("User account is inactive");
+        $response->send();
+        exit();
+      }
 
+      if($returned_loginattempts >= 3){
+        $response = new Response();
+        $response->setHttpStatusCode(401);
+        $response->setSuccess(false);
+        $response->addMessage("User account is currently locked out");
+        $response->send();
+        exit();
+      }
+
+      if(strtotime($returned_refreshtokenexpiry) < time()){
+        $response = new Response();
+        $response->setHttpStatusCode(401);
+        $response->setSuccess(false);
+        $response->addMessage("Refresh token has expired - please log in again");
+        $response->send();
+        exit();
+      }
+
+      $accesstoken = base64_encode(bin2hex(openssl_random_pseudo_bytes(24)).time());
+      $refreshtoken = base64_encode(bin2hex(openssl_random_pseudo_bytes(24)).time());
+
+      $access_token_expiry_seconds = 1200;
+      $refresh_token_expiry_seconds =1209600;
+
+      $query = $writeDB->prepare('update tblsessions_1 set accesstoken = :accesstoken, accesstokenexpiry = date_add(NOW(), INTERVAL :accesstokenexpiryseconds SECOND), refreshtoken = :refreshtoken, refreshtokenexpiry = date_add(NOW(), INTERVAL :refreshtokenexpiryseconds SECOND) where id = :sessionid and userid = :userid and accesstoken = :returnedaccesstoken and refreshtoken = :returnedrefreshtoken');
+      $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
+      $query->bindParam(':sessionid', $returned_sessionid, PDO::PARAM_INT);
+      $query->bindParam(':accesstoken', $accesstoken, PDO::PARAM_STR);
+      $query->bindParam(':accesstokenexpiryseconds', $access_token_expiry_seconds, PDO::PARAM_INT);
+      $query->bindParam(':refreshtoken', $refreshtoken, PDO::PARAM_STR);
+      $query->bindParam(':refreshtokenexpiryseconds', $refresh_token_expiry_seconds, PDO::PARAM_INT);
+      $query->bindParam(':returnedaccesstoken', $returned_accesstoken, PDO::PARAM_STR);
+      $query->bindParam(':returnedrefreshtoken', $returned_refreshtoken, PDO::PARAM_STR);
+      $query->execute();
+
+      $rowCount = $query->rowCount();
+
+      if($rowCount === 0){
+        $response = new Response();
+        $response->setHttpStatusCode(401);
+        $response->setSuccess(false);
+        $response->addMessage("Access token could not be refreshed - please log in again");
+        $response->send();
+        exit;
+      }
+
+      $returnData = array();
+      $returnData['sessionid'] = $returned_sessionid;
+      $returnData['access_token'] = $accesstoken;
+      $returnData['access_token_expiry'] = $access_token_expiry_seconds;
+      $returnData['refresh_token'] = $refreshtoken;
+      $returnData['refresh_token_expiry'] = $refresh_token_expiry_seconds;
+
+      $response = new Response();
+      $response->setHttpStatusCode(200);
+      $response->setSuccess(true);
+      $response->addMessage('Token refreshed successfully');
+      $response->setData($returnData);
+      $response->send();
+      exit;
     }
     catch(PDOException $ex){
       $response = new Response();
       $response->setHttpStatusCode(500);
       $response->setSuccess(false);
       $response->addMessage("There was an issue refreshing the access token - please log in again");
+      $response->addMessage($ex->getMessage());
       $response->send();
       exit();
     }
@@ -332,9 +401,6 @@ elseif(empty($_GET)){
     $response->setData($returnData);
     $response->send();
     exit;
-
-
-
 
 
   }
