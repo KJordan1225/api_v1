@@ -1,5 +1,7 @@
 <?php
 
+date_default_timezone_set('America/New_York');
+
 require_once('db.php');
 require_once('../model/response.php');
 require_once('../model/Task.php');
@@ -73,6 +75,10 @@ try{
     exit();
   }
 
+// print_r($returned_accesstokenexpiry);
+// print_r("<br>");
+// print_r(strftime('%Y-%m-%d %H:%M',time()));
+
   if(strtotime($returned_accesstokenexpiry) < time()) {
     $response = new Response();
     $response->setHttpStatusCode(401);
@@ -87,7 +93,7 @@ catch(PDOException $ex){
   $response->setHttpStatusCode(500);
   $response->setSuccess(false);
   $response->addMessage("There was an issue authenticating - please try again");
-  $response->addMessage($ex->getMessage());
+  // $response->addMessage($ex->getMessage());
   $response->send();
   exit();
 }

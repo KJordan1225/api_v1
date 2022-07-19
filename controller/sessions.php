@@ -1,5 +1,7 @@
 <?php
 
+date_default_timezone_set('America/New_York');
+
 require_once('db.php');
 require_once('../model/response.php');
 
